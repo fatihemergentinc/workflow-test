@@ -1,0 +1,66 @@
+name: Automated Release
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+    types: [closed]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && (github.event_name != 'pull_request' || github.event.pull_request.merged == true)
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Fetch Tags
+        run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+
+      - name: Get Latest Tag
+        id: latest_tag
+        run: |
+          LATEST_TAG=$(git describe --tags `git rev-list --tags --max-count=1` 2>/dev/null || echo "v0.0.0")
+          echo ::set-output name=TAG::$LATEST_TAG
+
+      - name: Set Version Increment
+        id: increment_version
+        run: |
+          IFS='.' read -ra VER <<< "${{ steps.latest_tag.outputs.TAG }}"
+          MAJOR=${VER[0]:1} # Remove the 'v' prefix
+          MINOR=${VER[1]}
+          PATCH=${VER[2]}
+          
+          if [ "$MAJOR.$MINOR.$PATCH" == "0.0.0" ]; then
+            NEW_VERSION="0.1.0"
+          else
+            if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+              if [[ "${{ github.head_ref }}" == "new-version" ]]; then
+                MAJOR=$((MAJOR+1))
+                MINOR=0
+                PATCH=0
+              elif [[ "${{ github.base_ref }}" == "dev" ]]; then
+                MINOR=$((MINOR+1))
+                PATCH=0
+              else
+                PATCH=$((PATCH+1))
+              fi
+            else
+              PATCH=$((PATCH+1))
+            fi
+            NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          fi
+          
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v$NEW_VERSION
+          release_name: Release v$NEW_VERSION
+          draft: false
+          prerelease: false
