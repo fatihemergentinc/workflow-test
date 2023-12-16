@@ -35,11 +35,11 @@ jobs:
             NEW_VERSION="0.1.0"
           else
             if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-              if [[ "${{ github.head_ref }}" == "new-version" ]]; then
+              if [[ "${{ github.event.pull_request.head.ref }}" == "new-version" ]]; then
                 MAJOR=$((MAJOR+1))
                 MINOR=0
                 PATCH=0
-              elif [[ "${{ github.base_ref }}" == "dev" ]]; then
+              elif [[ "${{ github.event.pull_request.head.ref }}" == "dev" ]]; then
                 MINOR=$((MINOR+1))
                 PATCH=0
               else
