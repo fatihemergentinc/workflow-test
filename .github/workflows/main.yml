@@ -56,9 +56,8 @@ jobs:
           echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
 
       - name: Create Release
-        uses: "marvinpinto/action-automatic-releases@latest"
+        uses: ncipollo/release-action@v1
         with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: v$NEW_VERSION
-          title: Release v$NEW_VERSION
-          prerelease: false
+          tag: v$NEW_VERSION
+          makeLatest: true
+          name: Release v$NEW_VERSION
